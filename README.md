@@ -32,7 +32,10 @@ This EPIC version of the BigHippo Serverless project fulfills the MVP of Buildin
 ## Prerequisites
 - Must have an appriciation for the Hippopotamus amphibius (Hippo), if you don't, this demo wont work for you, the stack KNOWS.
 - Must not be afraid of the command line, I've done as much as I can, however you might have to troubleshoot on your end while configuring your environment
-- Must be able to run PowerShell scripts, This is really only a concern for Mac users, you may have to install powershell
+- Must be able to run PowerShell scripts, You not only must have powershell, but you must have the ability to run the script. If having access issues, open up Powershell as Admin and run the following command.
+```sh
+$ Set-ExecutionPolicy Unrestricted
+```
 - Must have a passion to learn cool new things. Have Fun!
 
 ## Installation
