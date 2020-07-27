@@ -1,6 +1,6 @@
 # BigHippo goes #Severless with VoiceFoundry
 
-![Imgur](https://i.imgur.com/cu29his.png)
+![Imgur](https://i.imgur.com/UDtZiDC.png)
 
 ## Table of Contents
 -   [Description](#description)
@@ -15,7 +15,7 @@
 
 
 ## Description
-This EPIC version of the BigHippo Serverless project fulfills the MVP of Building a Serverless Plugin triggered Lambda function to read an object from S3 and write into a Dynamo table. This version also deploys an Hippo Manager Angular application to S3, served by Cloudfront. There was an extra Plugin created to run a PowerShell script that builds the node_modules and project, writes a new API gateway endpoint to the environment.{stage}.ts file, and deploys published files to S3. Ontop of deploying the app, there is an extra Lambda function in there triggered by an S3 event to add a CloudFront Invalidation. API Gateway is configured to serve a whole set of RESTful CRUD endpoints which serves data to the Angular Web Application. The Angular Web App has a quick dashboard and table to perform CRUD operations. I think thats it...
+This is an R&D Expansion of the EPIC version of the BigHippo project. This is a working copy, and will be implementing more features to this. The BigHippo Serverless project fulfills the MVP of Building a Serverless Plugin triggered Lambda function to read an object from S3 and write into a Dynamo table. This version also deploys an Hippo Manager Angular application to S3, served by Cloudfront. There was an extra Plugin created to run a PowerShell script that builds the node_modules and project, writes a new API gateway endpoint to the environment.{stage}.ts file, and deploys published files to S3. Ontop of deploying the app, there is an extra Lambda function in there triggered by an S3 event to add a CloudFront Invalidation. API Gateway is configured to serve a whole set of RESTful CRUD endpoints which serves data to the Angular Web Application. The Angular Web App has a quick dashboard and table to perform CRUD operations. I think thats it...
 ## Diagrams
 
 ### MVP CloudFormation Resources
