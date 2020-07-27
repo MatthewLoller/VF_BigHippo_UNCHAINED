@@ -171,3 +171,6 @@ Slow after submittal, will use as refrence matieral for some other projects in t
 
 - YOUTUBE:
     - https://www.youtube.com/watch?v=LXB2Nv9ygQc&t=2971s - Webinar - Getting started with the serverless framework
+
+- NG TEMPLATE:
+    - https://www.creative-tim.com/product/black-dashboard-angular
