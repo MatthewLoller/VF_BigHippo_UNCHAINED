@@ -9,7 +9,7 @@ export class NotifyService {
 
   success(message: string) {
     this.toastr.success(message, '', {
-      disableTimeOut: true,
+      timeOut: 4000,
       closeButton: true,
       enableHtml: true,
       toastClass: "alert alert-success alert-with-icon",
@@ -19,7 +19,7 @@ export class NotifyService {
 
   error(message: string) {
     this.toastr.success(message, '', {
-      disableTimeOut: false,
+      timeOut: 4000,
       closeButton: true,
       enableHtml: true,
       toastClass: "alert alert-danger alert-with-icon",
