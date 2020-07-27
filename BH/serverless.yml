@@ -1,0 +1,477 @@
+# Variable Reference
+# DYNAMODB_HIPPO_TABLE: ${self:custom.DYNAMODB_HIPPO_TABLE}
+# SOURCE_BUCKET_NAME: ${self:custom.SOURCE_BUCKET_NAME}
+# READANDCOPY_FUNCTION_NAME: ${self:custom.READANDCOPY_FUNCTION_NAME}
+# DYNAMODB_ARN: ${self:custom.DYNAMODB_ARN}
+# READANDCOPY_ARN: ${self:custom.READANDCOPY_ARN}
+# READANDCOPYROLE_ARN: ${self:custom.READANDCOPYROLE_ARN}
+# FILENAME: ${self:custom.FILENAME}
+# INVOKER_FUNCTION_NAME: ${self:custom.INVOKER_FUNCTION_NAME}
+# WEBHOST_BUCKET_NAME: ${self:custom.WEBHOST_BUCKET_NAME}
+
+service: epic-vf-bighippo-final
+
+# Provider Details
+provider:
+  name: aws
+  runtime: nodejs12.x
+  # Environment Variables for Lambda Function
+  environment:
+    DYNAMODB_HIPPO_TABLE: ${self:custom.DYNAMODB_HIPPO_TABLE}
+    SOURCE_BUCKET_NAME: ${self:custom.SOURCE_BUCKET_NAME}
+  stage: dev
+  region: us-east-1
+  # IAM Role for the Lambda function
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource: "*"
+    - Effect: "Allow"
+      Action: 
+        - dynamodb:PutItem
+        - dynamodb:Scan*
+        - dynamodb:GetItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.DYNAMODB_HIPPO_TABLE}
+
+# Custom Variabled
+custom:
+  SOURCE_BUCKET_NAME: ${self:service}-vf-mloller-s3-to-dynamo
+  DYNAMODB_HIPPO_TABLE: ${self:service}-hippos-${self:provider.stage}
+  DYNAMODB_ARN: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.DYNAMODB_HIPPO_TABLE}
+  READANDCOPY_FUNCTION_NAME: ${self:service}-vf-read-copy-to-dynamo-${self:provider.stage}
+  READANDCOPY_ARN: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:custom.READANDCOPY_FUNCTION_NAME}
+  READANDCOPYROLE_ARN: arn:aws:iam::#{AWS::AccountId}:role/${self:service}-${self:provider.stage}-#{AWS::Region}-lambdaRole
+  FILENAME: Fiona.json
+  INVOKER_FUNCTION_NAME: ${self:service}-Invoker
+  WEBHOST_BUCKET_NAME: ${self:service}.bighippo.net
+  EXPORT_DOMAIN_NAME: ${self:service}-DomainName
+  PS1_PATH: ../deploy.ps1
+  PSCOMMAND: ../deploy.ps1 -stackName ${self:service}-${self:provider.stage} -bucketName ${self:custom.WEBHOST_BUCKET_NAME} -stage ${self:provider.stage}
+
+plugins:
+  - plugin # CUSTOM plugin to invoke lambda function
+  - deploydist # CUSTOM plugin to build angular app and deploy to s3
+  - serverless-pseudo-parameters # IMPORTED plugin to better acces variable like acc id and region
+
+functions:
+  # Function to Reads object in s3, attempts to convert to JSON, populates data in Dynamo table
+  copyToDynamoOnInit:    
+    handler: handler.readAndCopy
+    name: ${self:custom.READANDCOPY_FUNCTION_NAME}
+    description: Reads objects in s3, attempts to convert to JSON, populates data in Dynamo table
+  # Function to write data to hippos table
+  create:
+    handler: handler.create
+    events:
+      - http:
+          path: /v1/hippos
+          method: post
+          cors: true 
+  # Function to list all data from hippos table
+  list:
+    handler: handler.list
+    events:
+      - http:
+          path: /v1/hippos
+          method: get
+          cors: true 
+  # Function to get specific hippo data from hippos table based on guid
+  get:
+    handler: handler.get
+    events:
+      - http:
+          path: /v1/hippos/{id}
+          method: get
+          cors: true 
+  # Function to update specific hippo data from hippos table based on guid
+  update:
+    handler: handler.update
+    events:
+      - http:
+          path: /v1/hippos/{id}
+          method: put
+          cors: true 
+  # Function to remove specific hippo data from hippos table based on guid
+  delete:
+    handler: handler.delete
+    events:
+      - http:
+          path: /v1/hippos/{id}
+          method: delete
+          cors: true
+
+# you can add CloudFormation resource templates here!
+resources:
+  Resources:
+    # DynamoDB Table for Hippo data to eventually be stored
+    HippoTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        TableName: ${self:custom.DYNAMODB_HIPPO_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    # Bucket for source file
+    S3Bucket:
+      Type: "AWS::S3::Bucket"
+      DeletionPolicy: Retain
+      Properties:
+        BucketName: ${self:custom.SOURCE_BUCKET_NAME}
+    
+    # Policy for source bucket
+    S3BucketPolicy:
+      Type: "AWS::S3::BucketPolicy"
+      Properties:
+        Bucket: !Ref S3Bucket
+        PolicyDocument:
+          Statement:
+            - Sid: "AllowLambdaRead"
+              Effect: "Allow"
+              Action: "s3:*"
+              Principal:
+                AWS:
+                  Fn::Join:
+                    - " "
+                    -
+                      - ${self:custom.READANDCOPYROLE_ARN}
+              Resource:
+                Fn::Join:
+                  - ""
+                  -
+                    - "arn:aws:s3:::"
+                    - ${self:custom.SOURCE_BUCKET_NAME}
+                    - "/*"
+
+    # Copy Lambda IAM role
+    LambdaIAMRole:
+      Type: 'AWS::IAM::Role'
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+        Path: /
+        Policies:
+          - PolicyName: root
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "s3:*"
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - 'logs:CreateLogGroup'
+                    - 'logs:CreateLogStream'
+                    - 'logs:PutLogEvents'
+                  Resource: 'arn:aws:logs:*:*:*'
+
+    # Lambda function to read S3, write to Dynamo
+    CustomPutObject:
+      Type: AWS::Lambda::Function
+      Properties:
+        FunctionName: ${self:custom.INVOKER_FUNCTION_NAME}
+        Description: puts object into s3
+        Handler: index.handler
+        Runtime: python3.6
+        Role: !GetAtt 'LambdaIAMRole.Arn'
+        Timeout: 240
+        Environment:
+          Variables:
+            bucketName: ${self:custom.SOURCE_BUCKET_NAME}
+        Code:
+          ZipFile: |
+              import json
+              import boto3
+              import time
+              import os
+              import uuid
+              import cfnresponse
+              from io import BytesIO
+
+              def handler(event, context):
+
+                  responseData = {}
+                  physicalResourceId = {}
+                  
+                  bucket = os.environ["bucketName"]
+
+                  id = uuid.uuid4()
+
+                  jsonDict = {
+                      "id": str(id),
+                      "name": "George",
+                      "species": "Common",
+                      "location": "Sacramento Zoo",
+                      "food": "Corndogs"
+                  }
+                  
+                  s3 = boto3.client('s3')
+                  
+                  json_encode_data = json.dumps(jsonDict).encode('utf-8')
+                  fileobj = BytesIO(json_encode_data)
+                  s3.upload_fileobj(fileobj, bucket, 'George.json')
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, physicalResourceId )
+    
+    # Custom Resource to invoke Lambda
+    Primerinvoke:
+      Type: AWS::CloudFormation::CustomResource
+      DependsOn: CustomPutObject
+      Version: "1.0"
+      Properties:
+        ServiceToken: !GetAtt CustomPutObject.Arn
+
+    # S3 Bucket to host NG front end
+    FrontEndS3Bucket:
+      Type: "AWS::S3::Bucket"
+      DependsOn: "InvalidateCF"
+      DeletionPolicy: Retain
+      Properties:
+        BucketName: ${self:custom.WEBHOST_BUCKET_NAME}
+        NotificationConfiguration:
+          LambdaConfigurations:
+            - Event: s3:ObjectCreated:*
+              Filter:
+                S3Key:
+                  Rules:
+                    - Name: suffix
+                      Value: .html
+              Function: !GetAtt [ InvalidateCF, Arn]
+
+    # S3 Policy to allow read from CF
+    FrontEndS3BucketPolicy:
+      Type: "AWS::S3::BucketPolicy"
+      Properties:
+        Bucket: !Ref FrontEndS3Bucket
+        PolicyDocument:
+          Statement:
+            -
+              Sid: "AllowCloudFrontAccessIdentity"
+              Effect: "Allow"
+              Action:
+                - "s3:GetObject"
+              Resource:
+                Fn::Join:
+                  - ""
+                  -
+                    - "arn:aws:s3:::"
+                    -
+                      Ref: "FrontEndS3Bucket"
+                    - "/*"
+              Principal:
+                AWS:
+                  Fn::Join:
+                    - " "
+                    -
+                      - "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity"
+                      -
+                        !Ref CloudFrontOriginAccessIdentity
+
+    # R53Record:
+    #   Type: "AWS::Route53::RecordSet"
+    #   Properties:
+    #     Comment:
+    #       Fn::Join:
+    #         - ""
+    #         -
+    #           - "Alias CloudFront for "
+    #           - ${self:custom.WEBHOST_BUCKET_NAME}
+    #     HostedZoneId: ${self:custom.HOSTED_ZONE_ID}
+    #     Type: A
+    #     Name: ${self:custom.WEBHOST_BUCKET_NAME}
+    #     AliasTarget:
+    #       DNSName: !GetAtt CFDistribution.DomainName
+    #       HostedZoneId: "Z2FDTNDATAQYW2"
+
+    # CF OAI
+    CloudFrontOriginAccessIdentity:
+      Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+      Properties:
+        CloudFrontOriginAccessIdentityConfig:
+          Comment: !Sub 'CloudFront OAI for VF'
+
+    # Basic CF dist, used mostly to get https for bucket
+    CFDistribution:
+      Type: "AWS::CloudFront::Distribution"
+      DependsOn: "FrontEndS3Bucket"
+      Properties:
+        DistributionConfig:
+          # Aliases:
+          #   - ${self:custom.WEBHOST_BUCKET_NAME}
+          Origins:
+            - DomainName: !GetAtt FrontEndS3Bucket.DomainName
+              # OriginPath: !Ref CloudFrontOriginPath
+              Id: S3BucketOrigin
+              S3OriginConfig:
+                OriginAccessIdentity:
+                  !Join ['', ['origin-access-identity/cloudfront/', !Ref CloudFrontOriginAccessIdentity]]
+          CustomErrorResponses:
+          - ErrorCachingMinTTL: 60
+            ErrorCode: 400
+            ResponseCode: 200
+            ResponsePagePath: /index.html      
+          - ErrorCachingMinTTL: 60
+            ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCachingMinTTL: 60
+            ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          Comment:
+            Fn::Join:
+              - ""
+              -
+                - "CloudFront origin for "
+                - ${self:custom.WEBHOST_BUCKET_NAME}
+          DefaultCacheBehavior:
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            TargetOriginId: S3BucketOrigin
+            ForwardedValues:
+              QueryString: "false"
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: redirect-to-https
+          DefaultRootObject: index.html
+          Enabled: "true"
+          HttpVersion: "http2"
+          PriceClass: PriceClass_100
+          # ViewerCertificate:
+          #   AcmCertificateArn: !Ref Cert
+          #   MinimumProtocolVersion: TLSv1
+          #   SslSupportMethod: sni-only
+
+    # Lambda to Invalidate CF on .html file create in S3 Web host bucket, this works for NG because it has one index.html file
+    LambdaInvokePermission:
+      Type: 'AWS::Lambda::Permission'
+      Properties:
+        FunctionName: !GetAtt InvalidateCF.Arn
+        Action: lambda:InvokeFunction
+        Principal: s3.amazonaws.com
+        SourceAccount: !Ref 'AWS::AccountId'
+        SourceArn:
+          Fn::Join:
+          - ""
+          -
+            - "arn:aws:s3:::"
+            - ${self:custom.WEBHOST_BUCKET_NAME}
+
+    # Invalidate CF Lambda, avoid circular dependency by using parameter store for CF Distribution Id
+    InvalidateCF:
+      Type: AWS::Lambda::Function
+      Properties:
+        Environment:
+          Variables:
+            cfId: ${self:service}
+        Description: Clears invalidations for specified cloudfront
+        Handler: index.handler
+        Runtime: python2.7
+        Role: !GetAtt 'FrontEndLambdaIAMRole.Arn'
+        Timeout: 240
+        Code:
+          ZipFile: |
+              import json
+              import boto3
+              import time
+              import os
+
+              def handler(event, context):
+                  
+                  cfId = os.environ["cfId"]
+                  path = ['/*']     
+                  client = boto3.client('cloudfront')
+                  sclient = boto3.client('ssm')
+                  parameter = sclient.get_parameter(Name=cfId)
+                  myCFId = parameter ['Parameter']['Value']
+                  invalidation = client.create_invalidation(
+                      DistributionId=myCFId,
+                      InvalidationBatch={
+                          'Paths': {
+                              'Quantity': 1,
+                              'Items': path
+                      },
+                      'CallerReference': str(time.time())
+                  })
+                  
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps('Hello from Lambda!')
+                  }
+
+    # Lets Lambda get notifications from S3
+    FrontEndLambdaIAMRole:
+      Type: 'AWS::IAM::Role'
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+        Path: /
+        Policies:
+          - PolicyName: root
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 's3:GetBucketNotification'
+                    - 's3:PutBucketNotification'
+                  Resource: 
+                    Fn::Join:
+                    - ""
+                    -
+                      - "arn:aws:s3:::"
+                      - ${self:custom.WEBHOST_BUCKET_NAME}
+                - Effect: Allow
+                  Action:
+                    - 'logs:CreateLogGroup'
+                    - 'logs:CreateLogStream'
+                    - 'logs:PutLogEvents'
+                  Resource: 'arn:aws:logs:*:*:*'
+                - Effect: Allow
+                  Action:
+                    - 'ssm:*'
+                    - 'cloudfront:*'
+                  Resource: '*'
+    
+    # ParameterStore for CFDistribution Id, to be referenced in invalidation function
+    ParameterStore:
+      Type: AWS::SSM::Parameter
+      DependsOn: CFDistribution
+      Properties: 
+        DataType: text
+        Description: SSM Parameter for CFId
+        Name: ${self:service}
+        Type: String
+        Value: !Ref CFDistribution
+
+  Outputs:
+
+    # Outputs endpoint to access NG UI
+    CFDistribution:
+      Description: Access web page here
+      Value: !GetAtt CFDistribution.DomainName
+      Export:
+        Name: ${self:custom.EXPORT_DOMAIN_NAME}
