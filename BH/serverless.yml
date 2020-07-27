@@ -9,7 +9,7 @@
 # INVOKER_FUNCTION_NAME: ${self:custom.INVOKER_FUNCTION_NAME}
 # WEBHOST_BUCKET_NAME: ${self:custom.WEBHOST_BUCKET_NAME}
 
-service: epic-vf-bighippo-final
+service: bighippo-unchained
 
 # Provider Details
 provider:
@@ -59,12 +59,12 @@ plugins:
 functions:
   # Function to Reads object in s3, attempts to convert to JSON, populates data in Dynamo table
   copyToDynamoOnInit:    
-    handler: handler.readAndCopy
+    handler: code/copy.readAndCopy
     name: ${self:custom.READANDCOPY_FUNCTION_NAME}
     description: Reads objects in s3, attempts to convert to JSON, populates data in Dynamo table
   # Function to write data to hippos table
   create:
-    handler: handler.create
+    handler: code/create.create
     events:
       - http:
           path: /v1/hippos
@@ -72,7 +72,7 @@ functions:
           cors: true 
   # Function to list all data from hippos table
   list:
-    handler: handler.list
+    handler: code/list.list
     events:
       - http:
           path: /v1/hippos
@@ -80,7 +80,7 @@ functions:
           cors: true 
   # Function to get specific hippo data from hippos table based on guid
   get:
-    handler: handler.get
+    handler: code/get.get
     events:
       - http:
           path: /v1/hippos/{id}
@@ -88,7 +88,7 @@ functions:
           cors: true 
   # Function to update specific hippo data from hippos table based on guid
   update:
-    handler: handler.update
+    handler: code/update.update
     events:
       - http:
           path: /v1/hippos/{id}
@@ -96,7 +96,7 @@ functions:
           cors: true 
   # Function to remove specific hippo data from hippos table based on guid
   delete:
-    handler: handler.delete
+    handler: code/delete.delete
     events:
       - http:
           path: /v1/hippos/{id}
