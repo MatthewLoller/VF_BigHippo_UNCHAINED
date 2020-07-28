@@ -1,0 +1,9 @@
+{
+  "name": "bighippo-unchained",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {},
+  "devDependencies": {
+    "serverless-vpc-plugin": "^1.0.0"
+  }
+}

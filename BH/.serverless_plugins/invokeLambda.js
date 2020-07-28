@@ -15,13 +15,7 @@ class LambdaInvoker {
         usage: 'Deploy assets to S3 bucket',
         lifecycleEvents: [
           'deploy'
-        ],
-        options: {
-          bucket: {
-            usage: 'Limit the deploy to a specific bucket',
-            shortcut: 'b'
-          }
-        }
+        ]
       }
     };
 
@@ -34,16 +28,22 @@ class LambdaInvoker {
   // Summary: Invokes Lambda function
   seedAndInvoke() {  
 
+    this.serverless.cli.log('Plugin - S3 to Dynamo: Running Lambda Invoker');
+
     let functionName = this.serverless.service.custom.READANDCOPY_FUNCTION_NAME
 
     var params = {
       FunctionName: functionName
     };
+
+    this.serverless.cli.log('Plugin - S3 to Dynamo: Invoking ' +functionName);
      
     Lambda.invoke(params, function(err, data) {
       if (err) console.log(err, err.stack); // an error occurred
       else     console.log(data);           // successful response
     });
+
+    this.serverless.cli.log('Plugin - S3 to Dynamo: ' +functionName+ 'invoked');
   }
 }
 

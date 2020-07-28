@@ -9,7 +9,7 @@
 # INVOKER_FUNCTION_NAME: ${self:custom.INVOKER_FUNCTION_NAME}
 # WEBHOST_BUCKET_NAME: ${self:custom.WEBHOST_BUCKET_NAME}
 
-service: bighippo-unchained
+service: bighippo-unchained-test
 
 # Provider Details
 provider:
@@ -22,25 +22,30 @@ provider:
   stage: dev
   region: us-east-1
   # IAM Role for the Lambda function
-  iamRoleStatements:
-    - Effect: "Allow"
-      Action:
-        - "s3:*"
-      Resource: "*"
-    - Effect: "Allow"
-      Action: 
-        - dynamodb:PutItem
-        - dynamodb:Scan*
-        - dynamodb:GetItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.DYNAMODB_HIPPO_TABLE}
+  role: LambdaRoleS3andDynamo
+  # iamRoleStatements:
+  #   - Effect: "Allow"
+  #     Action:
+  #       - "s3:*"
+  #     Resource: "*"
+  #   - Effect: "Allow"
+  #     Action: 
+  #       - dynamodb:PutItem
+  #       - dynamodb:Scan*
+  #       - dynamodb:GetItem
+  #       - dynamodb:UpdateItem
+  #       - dynamodb:DeleteItem
+  #     Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.DYNAMODB_HIPPO_TABLE}
 
-# Custom Variabled
+# Custom Variables
 custom:
+  STACK_NAME: ${self:service}-${self:provider.stage}
+  ROLE_NAME: ${self:custom.STACK_NAME}-functions-role3
+  POLICY_NAME: ${self:custom.ROLE_NAME}-policy
   SOURCE_BUCKET_NAME: ${self:service}-vf-mloller-s3-to-dynamo
+  SOURCE_BUCKET_ARN: arn:aws:s3:::${self:custom.SOURCE_BUCKET_NAME}/*
   DYNAMODB_HIPPO_TABLE: ${self:service}-hippos-${self:provider.stage}
-  DYNAMODB_ARN: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.DYNAMODB_HIPPO_TABLE}
+  DYNAMODB_ARN: arn:aws:dynamodb:${self:provider.region}:#{AWS::AccountId}:table/${self:custom.DYNAMODB_HIPPO_TABLE}
   READANDCOPY_FUNCTION_NAME: ${self:service}-vf-read-copy-to-dynamo-${self:provider.stage}
   READANDCOPY_ARN: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:custom.READANDCOPY_FUNCTION_NAME}
   READANDCOPYROLE_ARN: arn:aws:iam::#{AWS::AccountId}:role/${self:service}-${self:provider.stage}-#{AWS::Region}-lambdaRole
@@ -50,11 +55,18 @@ custom:
   EXPORT_DOMAIN_NAME: ${self:service}-DomainName
   PS1_PATH: ../deploy.ps1
   PSCOMMAND: ../deploy.ps1 -stackName ${self:service}-${self:provider.stage} -bucketName ${self:custom.WEBHOST_BUCKET_NAME} -stage ${self:provider.stage}
+  VPCID: ${ssm:/SLS/${self:custom.STACK_NAME}/VPC}
+  vpcConfig:    
+    createFlowLogs: true # Whether to enable VPC flow logging to an S3 bucket
+    createParameters: true
 
 plugins:
-  - plugin # CUSTOM plugin to invoke lambda function
-  - deploydist # CUSTOM plugin to build angular app and deploy to s3
-  - serverless-pseudo-parameters # IMPORTED plugin to better acces variable like acc id and region
+  - serverless-pseudo-parameters
+  - serverless-vpc-plugin
+  - updateBucketPolicy # Update bucket policy to only allow requests through a VPC endpoint
+  # - updateLambdaRolePolicy
+  - invokeLambda # Invoke lambda function to read s3 file and write to dynamo
+  - deploydist # Deploy web application
 
 functions:
   # Function to Reads object in s3, attempts to convert to JSON, populates data in Dynamo table
@@ -106,6 +118,34 @@ functions:
 # you can add CloudFormation resource templates here!
 resources:
   Resources:
+    LambdaRoleS3andDynamo:
+      Type: AWS::IAM::Role
+      Properties:        
+        RoleName: ${self:custom.ROLE_NAME}
+        Path: /
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+        Policies:
+          - PolicyName: ${self:custom.POLICY_NAME}
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "s3:*"
+                  Resource: "*"
+                - Effect: "Allow"
+                  Action: 
+                    - dynamodb:*
+                  Resource: ${self:custom.DYNAMODB_ARN}
+
     # DynamoDB Table for Hippo data to eventually be stored
     HippoTable:
       Type: 'AWS::DynamoDB::Table'
@@ -127,28 +167,46 @@ resources:
         BucketName: ${self:custom.SOURCE_BUCKET_NAME}
     
     # Policy for source bucket
+    # S3BucketPolicy:
+    #   Type: "AWS::S3::BucketPolicy"
+    #   Properties:
+    #     Bucket: !Ref S3Bucket
+    #     PolicyDocument:
+    #       Statement:
+    #         - Sid: "AllowLambdaRead"
+    #           Effect: "Allow"
+    #           Action: "s3:*"
+    #           Principal:
+    #             AWS:
+    #               Fn::Join:
+    #                 - " "
+    #                 -
+    #                   - ${self:custom.READANDCOPYROLE_ARN}
+    #           Resource:
+    #             Fn::Join:
+    #               - ""
+    #               -
+    #                 - "arn:aws:s3:::"
+    #                 - ${self:custom.SOURCE_BUCKET_NAME}
+    #                 - "/*"
+
     S3BucketPolicy:
       Type: "AWS::S3::BucketPolicy"
       Properties:
         Bucket: !Ref S3Bucket
         PolicyDocument:
           Statement:
-            - Sid: "AllowLambdaRead"
-              Effect: "Allow"
+            - Sid: "Access-to-specific-VPCE-only"
+              Effect: "Deny"
               Action: "s3:*"
-              Principal:
-                AWS:
-                  Fn::Join:
-                    - " "
-                    -
-                      - ${self:custom.READANDCOPYROLE_ARN}
+              Principal: "*"
               Resource:
                 Fn::Join:
                   - ""
                   -
                     - "arn:aws:s3:::"
                     - ${self:custom.SOURCE_BUCKET_NAME}
-                    - "/*"
+                    - "/*"             
 
     # Copy Lambda IAM role
     LambdaIAMRole:

@@ -12,13 +12,7 @@ class PSRunner {
         usage: 'Deploy assets to S3 bucket',
         lifecycleEvents: [
           'deploy'
-        ],
-        options: {
-          bucket: {
-            usage: 'Limit the deploy to a specific bucket',
-            shortcut: 'b'
-          }
-        }
+        ]
       }
     };
 
@@ -30,13 +24,18 @@ class PSRunner {
   // Function: Run powershell
   // Summary: Run script to build and deploy SPA files to S3
   runPowershell() {
+    this.serverless.cli.log('Plugin - Deploy: Running PowerShell');
+
     const { exec } = require('child_process');
 
     let path = this.serverless.service.custom.PSCOMMAND
 
     exec(path, {'shell':'powershell.exe'}, (error, stdout, stderr)=> {
         // do whatever with stdout
+        
     })
+
+    this.serverless.cli.log('Plugin - Deploy: PowerShell Complete');
   }
 }
 

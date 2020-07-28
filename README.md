@@ -2,6 +2,15 @@
 
 ![Imgur](https://i.imgur.com/UDtZiDC.png)
 
+## ChangeLog
+1) Seperated out handler.js into multiple seperate functions.
+2) Fixed some UI bugs.
+3) Added more comments.
+4) Added plugin logging.
+5) Added VPC, all Lambda functions now reside in a VPC
+6) Added VPC endpoint for Dynamo
+7) Added VPC endpoint for S3
+
 ## Table of Contents
 -   [Description](#description)
 -   [Diagrams](#diagrams)
@@ -121,14 +130,9 @@ Snag the GET - https://{APIGATEWAYUID}.execute-api.us-east-1.amazonaws.com/dev/v
 
 ## RoadMap
 Things I havent gotten to yet:
-1) Single handler.js - I doubt having a single handler is the best way to build out multiple functions...
 2) More robust error handling throughout
 3) Unit/Integration Testing, Jest? Dynamo mocking?
 4) Storing environment variables in parameter store, ref from lambda
-5) Creating VPC for lambda functions
-6) Creating VPC endpoint for Dynamo
-7) Creating VPC endpoint for S3
-8) Securing bucket policy to only allow request from potential VPC endpoint
 9) Possible better way to store AWS credentials? Since we're running the deploy command locally its not a huge deal...
 
 Potential Items:
@@ -174,3 +178,5 @@ Slow after submittal, will use as refrence matieral for some other projects in t
 
 - NG TEMPLATE:
     - https://www.creative-tim.com/product/black-dashboard-angular
+
+
