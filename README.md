@@ -3,13 +3,13 @@
 ![Imgur](https://i.imgur.com/UDtZiDC.png)
 
 ## ChangeLog
-1) Seperated out handler.js into multiple seperate functions.
+1) Seperated out handler.js into individual functions.
 2) Fixed some UI bugs.
-3) Added more comments.
+3) Added comments.
 4) Added plugin logging.
-5) Added VPC, all Lambda functions now reside in a VPC
-6) Added VPC endpoint for Dynamo
-7) Added VPC endpoint for S3
+5) Added VPC, all Lambda functions now reside in a VPC.
+6) Added VPC endpoint for Dynamo.
+7) Added VPC endpoint for S3.
 
 ## Table of Contents
 -   [Description](#description)
@@ -106,7 +106,7 @@ $ cd bh
 ```sh
 $ serverless deploy --{your-profile-name}
 ```
-15) Wait several minutes for your stack to deploy and watch the magic.
+17) Wait several minutes for your stack to deploy and watch the magic.
 
 ## Verification
 Post Deploy verification steps
@@ -130,10 +130,10 @@ Snag the GET - https://{APIGATEWAYUID}.execute-api.us-east-1.amazonaws.com/dev/v
 
 ## RoadMap
 Things I havent gotten to yet:
-2) More robust error handling throughout
-3) Unit/Integration Testing, Jest? Dynamo mocking?
-4) Storing environment variables in parameter store, ref from lambda
-9) Possible better way to store AWS credentials? Since we're running the deploy command locally its not a huge deal...
+1) More robust error handling throughout
+2) Unit/Integration Testing, Jest? Dynamo mocking?
+3) Storing environment variables in parameter store, ref from lambda
+4) Possible better way to store AWS credentials? Since we're running the deploy command locally its not a huge deal...
 
 Potential Items:
 1) CI/CD from GitHub repo, for this to work with VF, VF provides R53 HostedZone information. Also left this behind currently to make the deploy run without a hitch.

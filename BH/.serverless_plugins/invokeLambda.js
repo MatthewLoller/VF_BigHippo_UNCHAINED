@@ -43,7 +43,7 @@ class LambdaInvoker {
       else     console.log(data);           // successful response
     });
 
-    this.serverless.cli.log('Plugin - S3 to Dynamo: ' +functionName+ 'invoked');
+    this.serverless.cli.log('Plugin - S3 to Dynamo: ' +functionName+ ' invoked');
   }
 }
 

@@ -5,11 +5,10 @@
 # DYNAMODB_ARN: ${self:custom.DYNAMODB_ARN}
 # READANDCOPY_ARN: ${self:custom.READANDCOPY_ARN}
 # READANDCOPYROLE_ARN: ${self:custom.READANDCOPYROLE_ARN}
-# FILENAME: ${self:custom.FILENAME}
 # INVOKER_FUNCTION_NAME: ${self:custom.INVOKER_FUNCTION_NAME}
 # WEBHOST_BUCKET_NAME: ${self:custom.WEBHOST_BUCKET_NAME}
 
-service: bighippo-unchained-test
+service: bighippo-unchained
 
 # Provider Details
 provider:
@@ -40,7 +39,7 @@ provider:
 # Custom Variables
 custom:
   STACK_NAME: ${self:service}-${self:provider.stage}
-  ROLE_NAME: ${self:custom.STACK_NAME}-functions-role3
+  ROLE_NAME: ${self:custom.STACK_NAME}-functions-role
   POLICY_NAME: ${self:custom.ROLE_NAME}-policy
   SOURCE_BUCKET_NAME: ${self:service}-vf-mloller-s3-to-dynamo
   SOURCE_BUCKET_ARN: arn:aws:s3:::${self:custom.SOURCE_BUCKET_NAME}/*
@@ -49,13 +48,11 @@ custom:
   READANDCOPY_FUNCTION_NAME: ${self:service}-vf-read-copy-to-dynamo-${self:provider.stage}
   READANDCOPY_ARN: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:custom.READANDCOPY_FUNCTION_NAME}
   READANDCOPYROLE_ARN: arn:aws:iam::#{AWS::AccountId}:role/${self:service}-${self:provider.stage}-#{AWS::Region}-lambdaRole
-  FILENAME: Fiona.json
   INVOKER_FUNCTION_NAME: ${self:service}-Invoker
   WEBHOST_BUCKET_NAME: ${self:service}.bighippo.net
   EXPORT_DOMAIN_NAME: ${self:service}-DomainName
-  PS1_PATH: ../deploy.ps1
   PSCOMMAND: ../deploy.ps1 -stackName ${self:service}-${self:provider.stage} -bucketName ${self:custom.WEBHOST_BUCKET_NAME} -stage ${self:provider.stage}
-  VPCID: ${ssm:/SLS/${self:custom.STACK_NAME}/VPC}
+  SSM_PARAM_VPCID: /SLS/${self:custom.STACK_NAME}/VPC
   vpcConfig:    
     createFlowLogs: true # Whether to enable VPC flow logging to an S3 bucket
     createParameters: true
@@ -145,6 +142,10 @@ resources:
                   Action: 
                     - dynamodb:*
                   Resource: ${self:custom.DYNAMODB_ARN}
+                - Effect: "Allow"
+                  Action: 
+                    - ec2:*
+                  Resource: "*"
 
     # DynamoDB Table for Hippo data to eventually be stored
     HippoTable:
@@ -190,23 +191,23 @@ resources:
     #                 - ${self:custom.SOURCE_BUCKET_NAME}
     #                 - "/*"
 
-    S3BucketPolicy:
-      Type: "AWS::S3::BucketPolicy"
-      Properties:
-        Bucket: !Ref S3Bucket
-        PolicyDocument:
-          Statement:
-            - Sid: "Access-to-specific-VPCE-only"
-              Effect: "Deny"
-              Action: "s3:*"
-              Principal: "*"
-              Resource:
-                Fn::Join:
-                  - ""
-                  -
-                    - "arn:aws:s3:::"
-                    - ${self:custom.SOURCE_BUCKET_NAME}
-                    - "/*"             
+    # S3BucketPolicy:
+    #   Type: "AWS::S3::BucketPolicy"
+    #   Properties:
+    #     Bucket: !Ref S3Bucket
+    #     PolicyDocument:
+    #       Statement:
+    #         - Sid: "Access-to-specific-VPCE-only"
+    #           Effect: "Deny"
+    #           Action: "s3:*"
+    #           Principal: "*"
+    #           Resource:
+    #             Fn::Join:
+    #               - ""
+    #               -
+    #                 - "arn:aws:s3:::"
+    #                 - ${self:custom.SOURCE_BUCKET_NAME}
+    #                 - "/*"             
 
     # Copy Lambda IAM role
     LambdaIAMRole:

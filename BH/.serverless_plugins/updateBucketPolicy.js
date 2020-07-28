@@ -2,6 +2,7 @@ const AWS = require("aws-sdk");
 AWS.config.update({ region: "us-east-1" });
 const S3 = new AWS.S3();
 const EC2 = new AWS.EC2();
+const SSM = new AWS.SSM({region: 'us-east-1'});
 
 // Class: UpdateBucketPolicy
 // Summary: Updates Bucket Policy
@@ -27,11 +28,21 @@ class UpdateBucketPolicy {
   // Function: uBucketPolicy
   // Summary: Updates bucket policy to only be accessed from vpc
   async uBucketPolicy() {
-    let vpcId = this.serverless.service.custom.VPCID;
     let region = this.serverless.service.provider.region;
     let bucketName = this.serverless.service.custom.SOURCE_BUCKET_NAME;
     let bucketARN = this.serverless.service.custom.SOURCE_BUCKET_ARN;
+    let paramNameVPCId = this.serverless.service.custom.SSM_PARAM_VPCID;
 
+    this.serverless.cli.log("Plugin - Update Bucket Policy: Getting SSM parameter for VPC Id");
+
+    var ssmParams = {
+      Name: paramNameVPCId,
+      WithDecryption: false
+    };
+
+    let ssmRes = await SSM.getParameter(ssmParams).promise();
+
+    let vpcId = ssmRes.Parameter.Value;
 
     this.serverless.cli.log("Plugin - Update Bucket Policy: Updating bucket policy " + vpcId);
 
