@@ -95,18 +95,22 @@ $ npm install
 ```sh
 $ cd bh 
 ```
-14) Update the 'service' variable in the BH/serverless.yml file to something unique! (this will be your stack name, it is also used in naming other resources)
+14) Let's run 'npm install' again just incase... (may have threw all my packages in different places)
+```sh
+$ cd npm install
+```
+15) Update the 'service' variable in the BH/serverless.yml file to something unique! (this will be your stack name, it is also used in naming other resources)
 ```sh
 11:
-12: service: epic-vf-bighippo-{something unique}
+12: service: {something unique}
 13: 
 ```
-15) Open the repository either in command-line or text-editor w/console (I.E. VSCode)
-16) Run Command to Deploy Stack with the profile name you configured for you AWS account.
+16) Open the repository either in command-line or text-editor w/console (I.E. VSCode)
+17) Run Command to Deploy Stack with the profile name you configured for you AWS account.
 ```sh
 $ serverless deploy --{your-profile-name}
 ```
-17) Wait several minutes for your stack to deploy and watch the magic.
+18) Wait several minutes for your stack to deploy and watch the magic.
 
 ## Verification
 Post Deploy verification steps
@@ -145,7 +149,7 @@ Potential Items:
     - Plugin to write JSON to file and put
 
 ## ProjectStatus
-Slow after submittal, will use as refrence matieral for some other projects in the works...
+Active R&D, will use as refrence matieral for some other projects in the works...
 
 ## WorksCited
 - DOCS:
