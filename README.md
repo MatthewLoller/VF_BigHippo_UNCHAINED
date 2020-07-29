@@ -43,9 +43,9 @@ This is an R&D Expansion of the EPIC version of the BigHippo project. This is a 
 ```sh
 $ Set-ExecutionPolicy Unrestricted
 ```
-- Must have an AWS account with programatic access, we will be running scripts that require this!
+- Must have an AWS account with programatic access, we will be running cli commands that require this!
 - Must have an appriciation for the Hippopotamus amphibius (Hippo), if you don't, this demo wont work for you, the stack KNOWS.
-- Must not be afraid of the command line, I've done as much as I can, however you might have to troubleshoot on your end while configuring your environment
+- Must not be afraid of the command line, I've done as much as I can, however you might have to troubleshoot on your end while configuring your environment, If having issues please reach out to me (matthewloller@gmail.com) and I will assist where I can.
 - Must have a passion to learn cool new things. Have Fun!
 
 ## Installation
