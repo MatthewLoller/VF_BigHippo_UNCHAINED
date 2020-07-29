@@ -101,9 +101,9 @@ $ cd npm install
 ```
 15) Update the 'service' variable in the BH/serverless.yml file to something unique! (this will be your stack name, it is also used in naming other resources)
 ```sh
-11:
-12: service: {something unique}
-13: 
+10:
+11: service: {something unique}
+12: 
 ```
 16) Open the repository either in command-line or text-editor w/console (I.E. VSCode)
 17) Run Command to Deploy Stack with the profile name you configured for you AWS account.
