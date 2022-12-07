@@ -11,7 +11,7 @@
   "dependencies": {
     "@middy/core": "^1.1.0",
     "aws-sdk": "^2.720.0",
-    "serverless": "^1.76.1",
+    "serverless": "^3.25.1",
     "serverless-plugin-scripts": "^1.0.2",
     "serverless-single-page-app-plugin": "^1.0.2",
     "uuid": "^8.2.0"
